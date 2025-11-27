@@ -3,19 +3,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
+
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { Field, FieldLabel } from "@/components/ui/field";
+
 import {
   Pagination,
   PaginationContent,
@@ -25,171 +25,171 @@ import {
 
 const API_BASE_URL = "http://localhost:8000";
 
-
-
-
-
 export default function Home() {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm()
+  const { register, handleSubmit } = useForm();
+
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState("");
-  const [ordering, setOrdering] = useState("full_name")
-  
-  const [nextPage, setNextPage] = useState(null);
-  const [prevPage, setPrevPage] = useState(null);
+  const [ordering, setOrdering] = useState("full_name");
   const [page, setPage] = useState(1);
 
+  const [nextPage, setNextPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
 
-  // punto 1
-  const loadStudents = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/students/?page=${page}`);
-    const data = await res.json();
-    setStudents(data.results);
-    setNextPage(data.next);
-    setPrevPage(data.previous);
-  }
+  // ==========================
+  //   CARGAR ESTUDIANTES
+  // ==========================
+  const loadStudents = async (pageNumber = page) => {
+    try {
+      const url = `${API_BASE_URL}/students/?page=${pageNumber}&search=${query}&ordering=${ordering}`;
+      console.log("Fetching:", url);
+
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        console.error("Error cargando estudiantes:", res.status);
+        return;
+      }
+
+      const data = await res.json();
+
+      setStudents(data.results || []);
+      setNextPage(data.next);
+      setPrevPage(data.previous);
+    } catch (error) {
+      console.error("Error fetch:", error);
+    }
+  };
 
   useEffect(() => {
     loadStudents(page);
   }, [page]);
+
   
-  const orderingClickHandler = (button) => {
-    if (button === 'name_button') {
-      if (ordering === 'full_name') setOrdering('-full_name')
-      else setOrdering('full_name')
-    } else {
-      if (ordering === 'code') setOrdering('-code')
-      else setOrdering('code')
-    }
-  }
-
-
   useEffect(() => {
-    loadStudents().then((data) => {
-      setStudents(data);
-    });
+    setPage(1);
+    loadStudents(1);
   }, [query, ordering]);
 
+  // ==========================
+  //   ORDENAMIENTO
+  // ==========================
+  const toggleOrdering = (field) => {
+    if (ordering === field) {
+      setOrdering(`-${field}`);
+    } else {
+      setOrdering(field);
+    }
+  };
 
+  // ==========================
+  //   AGREGAR ESTUDIANTE
+  // ==========================
   const onSubmit = async (data) => {
-    console.log("Submitting data: ", data);
-    const response = await fetch(`${API_BASE_URL}/students/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    }
-    )
-    if (response.ok) {
-      const newStudent = await response.json();
-      loadStudents().then((data) => {
-      setStudents(data);
-    });
-      // setStudents([newStudent,...students]);
-      toast.success("Estudiante agregado con éxito");
+    try {
+      const res = await fetch(`${API_BASE_URL}/students/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    }
-    else {
-      const errorData = await response.json();
-      console.error("Error adding student: ", errorData);
-
-      let errorMessage = "";
-
-      for(const key in errorData) {
-        errorMessage += `${key}: ${errorData[key]}\n`;
+      if (!res.ok) {
+        toast.error("Error al agregar estudiante");
+        return;
       }
 
-      toast.error("Error al agregar el estudiante", {
-        description: errorMessage,
-      });
+      toast.success("Estudiante agregado");
+      loadStudents(1);
+    } catch (error) {
+      console.error(error);
     }
-  }
+  };
 
+  // ==========================
+  //   UI
+  // ==========================
   return (
     <Card className="w-96 mx-auto mt-4">
       <CardHeader>
         <CardTitle>Students</CardTitle>
       </CardHeader>
+
       <CardContent>
+        {/* Buscar - Orden */}
         <div className="flex gap-3">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} />
-          <Button variant="outline" onClick={() => { orderingClickHandler("name_button") }}>
-            {ordering === 'full_name' ? <ArrowDownIcon /> : <ArrowUpIcon />}
+          <Input
+            placeholder="Buscar..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+
+          <Button variant="outline" onClick={() => toggleOrdering("full_name")}>
+            {ordering === "full_name" ? <ArrowDownIcon /> : <ArrowUpIcon />}
           </Button>
-          <Button variant="outline" onClick={() => { orderingClickHandler("code_button") }}>
-            {ordering === 'code' ? <ArrowDownIcon /> : <ArrowUpIcon />}
+
+          <Button variant="outline" onClick={() => toggleOrdering("code")}>
+            {ordering === "code" ? <ArrowDownIcon /> : <ArrowUpIcon />}
           </Button>
         </div>
-        <hr className="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700"></hr>
 
+        <hr className="my-3" />
+
+        {/* Estudiantes */}
         <div className="p-4 h-96 overflow-y-auto">
           <ul>
-            {students.map((student) => (
-              <li key={student.code} className="text-md font-medium my-2 flex flex-row justify-between" title={student.email}>
-                <div>
-                  {student.full_name}
-
-                </div>
-                <div>
-                  {student.code}
-                </div>
+            {students.map((s) => (
+              <li
+                key={s.code}
+                className="flex justify-between my-2 text-md font-medium"
+              >
+                <span>{s.full_name}</span>
+                <span>{s.code}</span>
               </li>
             ))}
           </ul>
         </div>
-        <hr className="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700"></hr>
 
+        <hr className="my-3" />
+
+        {/* Formulario */}
         <div>
-          <Field className="mt-4">
-            <FieldLabel htmlFor="full_name" >Nombre completo</FieldLabel>
-            <Input id="full_name" placeholder="Ingresa el nombre" {...register("full_name", { required: true })}></Input>
+          <Field>
+            <FieldLabel>Nombre</FieldLabel>
+            <Input {...register("full_name", { required: true })} />
           </Field>
+
           <Field className="mt-4">
-            <FieldLabel htmlFor="email">Email</FieldLabel>
-            <Input id="email" placeholder="Ingresa el email" {...register("email", { required: true })}></Input>
+            <FieldLabel>Email</FieldLabel>
+            <Input {...register("email", { required: true })} />
           </Field>
+
           <Field className="mt-4">
-            <FieldLabel htmlFor="code">Código</FieldLabel>
-            <Input id="code" placeholder="Ingresa el código" {...register("code", { required: true })}></Input>
+            <FieldLabel>Código</FieldLabel>
+            <Input {...register("code", { required: true })} />
           </Field>
+
           <Button className="my-2" onClick={handleSubmit(onSubmit)}>
             Agregar estudiante
           </Button>
         </div>
 
+        {/* Paginación */}
+        <Pagination>
+          <PaginationContent>
+            <PaginationPrevious
+              disabled={!prevPage}
+              className={!prevPage ? "opacity-50 cursor-not-allowed" : ""}
+              onClick={() => prevPage && setPage(page - 1)}
+            />
 
-        {/* PAGINACIÓN */}
-      <Pagination>
-        <PaginationContent>
-
-          {/* Página anterior */}
-          <PaginationPrevious
-            disabled={!prevPage}
-            className={!prevPage ? "opacity-50 cursor-not-allowed" : ""}
-            onClick={() => {
-              if (prevPage) setPage(page - 1);
-            }}
-          />
-
-          {/* Página siguiente */}
-          <PaginationNext
-            disabled={!nextPage}
-            className={!nextPage ? "opacity-50 cursor-not-allowed" : ""}
-            onClick={() => {
-              if (nextPage) setPage(page + 1);
-            }}
-          />
-
-        </PaginationContent>
-      </Pagination>
+            <PaginationNext
+              disabled={!nextPage}
+              className={!nextPage ? "opacity-50 cursor-not-allowed" : ""}
+              onClick={() => nextPage && setPage(page + 1)}
+            />
+          </PaginationContent>
+        </Pagination>
       </CardContent>
     </Card>
-
   );
 }
