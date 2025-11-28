@@ -22,11 +22,22 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 
 const API_BASE_URL = "http://localhost:8000";
 
 export default function Home() {
   const { register, handleSubmit } = useForm();
+  const [open, setOpen] = useState(false);
+
 
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState("");
@@ -65,7 +76,7 @@ export default function Home() {
     loadStudents(page);
   }, [page]);
 
-  
+
   useEffect(() => {
     setPage(1);
     loadStudents(1);
@@ -100,6 +111,7 @@ export default function Home() {
 
       toast.success("Estudiante agregado");
       loadStudents(1);
+      setOpen(false);
     } catch (error) {
       console.error(error);
     }
@@ -110,13 +122,16 @@ export default function Home() {
   // ==========================
   return (
     <Card className="w-96 mx-auto mt-4">
-      <CardHeader>
+
+      <CardHeader className="justify-center">
         <CardTitle>Students</CardTitle>
       </CardHeader>
 
+
+
       <CardContent>
         {/* Buscar - Orden */}
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <Input
             placeholder="Buscar..."
             value={query}
@@ -150,29 +165,43 @@ export default function Home() {
         </div>
 
         <hr className="my-3" />
-
+        
         {/* Formulario */}
-        <div>
-          <Field>
-            <FieldLabel>Nombre</FieldLabel>
-            <Input {...register("full_name", { required: true })} />
-          </Field>
+        <div className="flex justify-center w-max h-max mx-auto items-center">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="mt-2">Crear estudiante</Button>
+            </DialogTrigger>    <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Agregar estudiante</DialogTitle>
+              </DialogHeader>
 
-          <Field className="mt-4">
-            <FieldLabel>Email</FieldLabel>
-            <Input {...register("email", { required: true })} />
-          </Field>
+              <div className="space-y-4">
+                <Field>
+                  <FieldLabel>Nombre completo</FieldLabel>
+                  <Input {...register("full_name", { required: true })} />
+                </Field>
 
-          <Field className="mt-4">
-            <FieldLabel>Código</FieldLabel>
-            <Input {...register("code", { required: true })} />
-          </Field>
+                <Field>
+                  <FieldLabel>Email</FieldLabel>
+                  <Input {...register("email", { required: true })} />
+                </Field>
 
-          <Button className="my-2" onClick={handleSubmit(onSubmit)}>
-            Agregar estudiante
-          </Button>
+                <Field>
+                  <FieldLabel>Código</FieldLabel>
+                  <Input {...register("code", { required: true })} />
+                </Field>
+              </div>
+
+              <DialogFooter>
+                <Button onClick={handleSubmit(onSubmit)}>Guardar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
+        <hr className="my-3" />
+        
         {/* Paginación */}
         <Pagination>
           <PaginationContent>
@@ -189,6 +218,9 @@ export default function Home() {
             />
           </PaginationContent>
         </Pagination>
+
+        <hr className="mt-3" />
+
       </CardContent>
     </Card>
   );
