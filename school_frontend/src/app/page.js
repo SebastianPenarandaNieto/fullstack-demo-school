@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import Link from "next/link";
+
 
 import {
   Card,
@@ -155,10 +157,12 @@ export default function Home() {
             {students.map((s) => (
               <li
                 key={s.code}
-                className="flex justify-between my-2 text-md font-medium"
+                className="flex justify-between my-2 text-md font-medium hover:bg-gray-100 p-2 rounded"
               >
-                <span>{s.full_name}</span>
-                <span>{s.code}</span>
+                <Link href={`/students/${s.id}`} className="flex justify-between w-full">
+                  <span>{s.full_name}</span>
+                  <span>{s.code}</span>
+                </Link>
               </li>
             ))}
           </ul>
